@@ -1,4 +1,3 @@
-
 name: Gerar EXE do Loja do Zero
 
 on:
@@ -57,5 +56,3 @@ jobs:
           if-no-files-found: error
 ```
 
-
-   
