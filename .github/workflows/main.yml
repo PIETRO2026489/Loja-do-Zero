@@ -1,74 +1,58 @@
-name: Construir Loja do Zero
+```yaml
+name: Gerar EXE do Loja do Zero
 
 on:
   push:
-    branches: ["main", "master"]
-  pull_request:
-    branches: ["main", "master"]
+    branches:
+      - main
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
-  construir-web:
-    # Fixamos Ubuntu 24.04 para evitar a migração automática do ubuntu-latest.
-    runs-on: ubuntu-24.04
+  build-windows:
+    runs-on: windows-latest
 
     steps:
-      - name: Baixar o repositório
-        uses: actions/checkout@v6
+      - name: Baixar código
+        uses: actions/checkout@v4
 
-      - name: Configurar Python 3.11
-        uses: actions/setup-python@v7
+      - name: Instalar Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          # Sem cache automático: isso evita falha quando requirements.txt
-          # não estiver presente na raiz do repositório.
-
-      - name: Verificar arquivos do projeto
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Diretório atual: $(pwd)"
-          echo "Arquivos da raiz:"
-          ls -la
-          test -f main.py || { echo "ERRO: main.py não foi encontrado na raiz."; exit 1; }
+          python-version: "3.12"
 
       - name: Instalar dependências
-        shell: bash
         run: |
-          set -euo pipefail
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip
+          pip install pygame pyinstaller
 
-          if [[ -f requirements.txt ]]; then
-            echo "Instalando pelo requirements.txt"
-            python -m pip install -r requirements.txt
-          else
-            echo "requirements.txt não encontrado; instalando dependências mínimas diretamente."
-            python -m pip install "pygame-ce>=2.5.0" "pygbag>=0.9.2"
-          fi
-
-      - name: Validar sintaxe Python
-        run: python -m py_compile main.py
-
-      - name: Construir versão WebAssembly
-        shell: bash
+      - name: Verificar arquivo principal
+        shell: pwsh
         run: |
-          set -euo pipefail
-          python -m pygbag --build --template none main.py
+          if (!(Test-Path "main.py")) {
+            Write-Error "ERRO: main.py não foi encontrado na raiz do repositório."
+            exit 1
+          }
 
-      - name: Conferir saída web
-        shell: bash
+      - name: Verificar sintaxe do jogo
         run: |
-          set -euo pipefail
-          test -d build/web || { echo "ERRO: a pasta build/web não foi criada."; exit 1; }
-          echo "Conteúdo de build/web:"
-          find build/web -maxdepth 2 -type f | sort | head -100
+          python -m py_compile main.py
 
-      - name: Enviar artefato web
-        uses: actions/upload-artifact@v6
+      - name: Gerar executável
+        run: |
+          pyinstaller --onefile --windowed --name "LojaDoZero" main.py
+
+      - name: Verificar EXE
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/LojaDoZero.exe")) {
+            Write-Error "ERRO: o executável não foi gerado."
+            exit 1
+          }
+
+      - name: Enviar EXE como artefato
+        uses: actions/upload-artifact@v4
         with:
-          name: loja-do-zero-web
-          path: build/web
+          name: LojaDoZero-Windows
+          path: dist/LojaDoZero.exe
           if-no-files-found: error
+```
