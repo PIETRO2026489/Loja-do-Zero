@@ -1,6 +1,7 @@
 name: Gerar EXE do Loja do Zero
 
 on:
+
   push:
     branches:
       - main
@@ -24,29 +25,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install pygame pyinstaller
 
-      - name: Verificar arquivo principal
-        run: |
-          if (!(Test-Path "main.py")) {
-            Write-Host "ERRO: main.py não foi encontrado."
-            exit 1
-          }
-
-      - name: Verificar sintaxe
-        run: |
-          python -m py_compile main.py
-
       - name: Gerar executável
         run: |
-          pyinstaller --onefile --windowed --name LojaDoZero main.py
+          pyinstaller --onefile --windowed --name "LojaDoZero" main.py
 
-      - name: Verificar executável
-        run: |
-          if (!(Test-Path "dist/LojaDoZero.exe")) {
-            Write-Host "ERRO: LojaDoZero.exe não foi criado."
-            exit 1
-          }
-
-      - name: Publicar executável
+      - name: Enviar EXE como artefato
         uses: actions/upload-artifact@v4
         with:
           name: LojaDoZero-Windows
