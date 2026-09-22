@@ -1,4 +1,4 @@
-```yaml
+
 name: Gerar EXE do Loja do Zero
 
 on:
@@ -56,3 +56,6 @@ jobs:
           path: dist/LojaDoZero.exe
           if-no-files-found: error
 ```
+
+
+   
