@@ -1,3 +1,4 @@
+```yaml
 name: Gerar EXE do Loja do Zero
 
 on:
@@ -25,34 +26,30 @@ jobs:
           pip install pygame pyinstaller
 
       - name: Verificar arquivo principal
-        shell: pwsh
         run: |
           if (!(Test-Path "main.py")) {
-            Write-Error "ERRO: main.py não foi encontrado na raiz do repositório."
+            Write-Host "ERRO: main.py não foi encontrado."
             exit 1
           }
 
-      - name: Verificar sintaxe do jogo
+      - name: Verificar sintaxe
         run: |
           python -m py_compile main.py
 
       - name: Gerar executável
         run: |
-          pyinstaller --onefile --windowed --name "LojaDoZero" main.py
+          pyinstaller --onefile --windowed --name LojaDoZero main.py
 
-      - name: Verificar EXE
-        shell: pwsh
+      - name: Verificar executável
         run: |
           if (!(Test-Path "dist/LojaDoZero.exe")) {
-            Write-Error "ERRO: o executável não foi gerado."
+            Write-Host "ERRO: LojaDoZero.exe não foi criado."
             exit 1
           }
 
-      - name: Enviar EXE como artefato
+      - name: Publicar executável
         uses: actions/upload-artifact@v4
         with:
           name: LojaDoZero-Windows
           path: dist/LojaDoZero.exe
-          if-no-files-found: error
 ```
-
