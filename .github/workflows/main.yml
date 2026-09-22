@@ -1,4 +1,4 @@
-name: Build Loja do Zero
+name: Construir Loja do Zero
 
 on:
   push:
@@ -7,31 +7,67 @@ on:
     branches: ["main", "master"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build-web:
-    runs-on: ubuntu-latest
+  construir-web:
+    # Fixamos Ubuntu 24.04 para evitar a migração automática do ubuntu-latest.
+    runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Baixar o repositório
+        uses: actions/checkout@v6
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-          cache: "pip"
+          # Sem cache automático: isso evita falha quando requirements.txt
+          # não estiver presente na raiz do repositório.
 
-      - name: Install dependencies
+      - name: Verificar arquivos do projeto
+        shell: bash
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          set -euo pipefail
+          echo "Diretório atual: $(pwd)"
+          echo "Arquivos da raiz:"
+          ls -la
+          test -f main.py || { echo "ERRO: main.py não foi encontrado na raiz."; exit 1; }
 
-      - name: Build WebAssembly with pygbag
+      - name: Instalar dependências
+        shell: bash
         run: |
-          pygbag --build --template none main.py
+          set -euo pipefail
+          python -m pip install --upgrade pip setuptools wheel
 
-      - name: Upload web build
-        uses: actions/upload-artifact@v4
+          if [[ -f requirements.txt ]]; then
+            echo "Instalando pelo requirements.txt"
+            python -m pip install -r requirements.txt
+          else
+            echo "requirements.txt não encontrado; instalando dependências mínimas diretamente."
+            python -m pip install "pygame-ce>=2.5.0" "pygbag>=0.9.2"
+          fi
+
+      - name: Validar sintaxe Python
+        run: python -m py_compile main.py
+
+      - name: Construir versão WebAssembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pygbag --build --template none main.py
+
+      - name: Conferir saída web
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d build/web || { echo "ERRO: a pasta build/web não foi criada."; exit 1; }
+          echo "Conteúdo de build/web:"
+          find build/web -maxdepth 2 -type f | sort | head -100
+
+      - name: Enviar artefato web
+        uses: actions/upload-artifact@v6
         with:
           name: loja-do-zero-web
           path: build/web
